@@ -53,9 +53,10 @@ void http_conn::initmysql_result(connection_pool *connPool)
 //对文件描述符设置非阻塞
 int setnonblocking(int fd)
 {
-    int old_option = fcntl(fd, F_GETFL);
-    int new_option = old_option | O_NONBLOCK;
-    fcntl(fd, F_SETFL, new_option);
+    //fcntl()针对(文件)描述符提供控制  int fcntl(int fd, int cmd, long arg); 
+    int old_option = fcntl(fd, F_GETFL);//F_GETFL, 取得fd的文件状态标志
+    int new_option = old_option | O_NONBLOCK; //O_NONBLOCK, arg描述符状态标志之一, 表示非阻塞I/O
+    fcntl(fd, F_SETFL, new_option);//F_SETFL, 给arg描述符设置状态标志
     return old_option;
 }
 
@@ -66,14 +67,14 @@ void addfd(int epollfd, int fd, bool one_shot, int TRIGMode)
     event.data.fd = fd;
 
     if (1 == TRIGMode)
-        event.events = EPOLLIN | EPOLLET | EPOLLRDHUP;
+        event.events = EPOLLIN | EPOLLET | EPOLLRDHUP; // EPOLLET:将EPOLL设为边缘触发ET模式; EPOLLRDHUP：表示读关闭，对端关闭
     else
         event.events = EPOLLIN | EPOLLRDHUP;
 
     if (one_shot)
-        event.events |= EPOLLONESHOT;
-    epoll_ctl(epollfd, EPOLL_CTL_ADD, fd, &event);
-    setnonblocking(fd);
+        event.events |= EPOLLONESHOT; // EPOLLONESHOT：只监听一次事件, 使一个socket连接在任一时刻都只被一个线程处理
+    epoll_ctl(epollfd, EPOLL_CTL_ADD, fd, &event); // 注册新的fd到epoll实例中
+    setnonblocking(fd); //对文件描述符设置非阻塞
 }
 
 //从内核时间表删除描述符
